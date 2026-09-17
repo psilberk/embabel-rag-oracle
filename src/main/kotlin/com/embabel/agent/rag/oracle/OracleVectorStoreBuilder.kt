@@ -40,15 +40,10 @@ data class OracleVectorStoreBuilder(
             ?: dataSource?.let { JdbcClient.create(it) }
             ?: throw IllegalStateException("Either jdbcClient or dataSource must be provided")
 
+        val properties = createProperties()
         val store = OracleVectorStore(
             jdbcClient = resolvedJdbcClient,
-            properties = OracleVectorStoreProperties(
-                name = name,
-                schemaName = schemaName,
-                contentElementTable = contentElementTable,
-                embeddingDimension = embeddingDimension,
-                similarityThresholdCeiling = similarityThresholdCeiling
-            ),
+            properties = properties,
             objectMapper = objectMapper
         )
         store.provision()
@@ -62,15 +57,19 @@ data class OracleVectorStoreBuilder(
 
         return OracleVectorStore(
             jdbcClient = resolvedJdbcClient,
-            properties = OracleVectorStoreProperties(
-                name = name,
-                schemaName = schemaName,
-                contentElementTable = contentElementTable,
-                embeddingDimension = embeddingDimension,
-                similarityThresholdCeiling = similarityThresholdCeiling
-            ),
+            properties = createProperties(),
             objectMapper = objectMapper
         )
+    }
+
+    private fun createProperties(): OracleVectorStoreProperties {
+        return OracleVectorStoreProperties().apply {
+            this.name = this@OracleVectorStoreBuilder.name
+            this.schemaName = this@OracleVectorStoreBuilder.schemaName
+            this.contentElementTable = this@OracleVectorStoreBuilder.contentElementTable
+            this.embeddingDimension = this@OracleVectorStoreBuilder.embeddingDimension
+            this.similarityThresholdCeiling = this@OracleVectorStoreBuilder.similarityThresholdCeiling
+        }
     }
 
     companion object {
