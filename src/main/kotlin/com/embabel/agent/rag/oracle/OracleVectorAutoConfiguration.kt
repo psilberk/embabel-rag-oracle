@@ -1,22 +1,20 @@
 package com.embabel.agent.rag.oracle
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.embabel.common.ai.model.EmbeddingService
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.jdbc.core.simple.JdbcClient
-import javax.sql.DataSource
+import tools.jackson.databind.ObjectMapper
 
-@AutoConfiguration
+@AutoConfiguration(
+    afterName = ["org.springframework.boot.jdbc.autoconfigure.JdbcClientAutoConfiguration"]
+)
 @EnableConfigurationProperties(OracleVectorStoreProperties::class)
 class OracleVectorAutoConfiguration {
-
-    @Bean
-    @ConditionalOnMissingBean(JdbcClient::class)
-    @ConditionalOnBean(DataSource::class)
-    fun jdbcClient(dataSource: DataSource): JdbcClient = JdbcClient.create(dataSource)
 
     @Bean
     @ConditionalOnMissingBean
@@ -24,12 +22,15 @@ class OracleVectorAutoConfiguration {
     fun oracleVectorStore(
         jdbcClient: JdbcClient,
         properties: OracleVectorStoreProperties,
-        objectMapper: ObjectMapper?
+        objectMapperProvider: ObjectProvider<ObjectMapper>,
+        embeddingServiceProvider: ObjectProvider<EmbeddingService>,
     ): OracleVectorStore {
+        val embeddingService = embeddingServiceProvider.getIfAvailable()
         val store = OracleVectorStore(
             jdbcClient = jdbcClient,
-            properties = properties,
-            objectMapper = objectMapper ?: ObjectMapper()
+            properties = properties.resolved(embeddingService),
+            objectMapper = objectMapperProvider.getIfAvailable { ObjectMapper() },
+            embeddingService = embeddingService,
         )
         store.provision()
         return store
